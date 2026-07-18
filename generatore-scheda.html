@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Generatore Scheda Personaggio</title>
+<style>
+  :root{
+    --bg: #14121a;
+    --panel: #1c1926;
+    --panel-2: #221e30;
+    --line: #332d47;
+    --ink: #ede9f7;
+    --ink-dim: #a79fc2;
+    --gold: #c9a24b;
+    --numen: #4bc98f;
+    font-family: "Georgia", "Iowan Old Style", serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse at top, #201c2c 0%, var(--bg) 60%);
+    color:var(--ink);
+    min-height:100vh;
+    padding:32px 20px 70px;
+  }
+  h1{
+    text-align:center;
+    font-weight:400;
+    letter-spacing:2px;
+    font-size:28px;
+    margin:0 0 4px;
+    color:var(--gold);
+  }
+  .subtitle{
+    text-align:center;
+    color:var(--ink-dim);
+    font-size:13px;
+    letter-spacing:1px;
+    margin-bottom:32px;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+  }
+  .wrap{
+    max-width:820px;
+    margin:0 auto;
+  }
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:28px 32px 32px;
+    margin-bottom:24px;
+  }
+  .panel h2{
+    font-size:15px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--gold);
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-weight:600;
+    margin:0 0 20px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .panel h2::after{
+    content:"";
+    flex:1;
+    height:1px;
+    background:var(--line);
+  }
+  label{
+    display:block;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size:12.5px;
+    letter-spacing:0.5px;
+    text-transform:uppercase;
+    color:var(--ink-dim);
+    margin:20px 0 7px;
+  }
+  label:first-of-type{margin-top:0;}
+  input[type=text], select, textarea{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:7px;
+    color:var(--ink);
+    padding:13px 14px;
+    font-size:16px;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    resize:vertical;
+  }
+  textarea{min-height:140px; line-height:1.6;}
+  textarea#storia{min-height:220px;}
+  input:focus, select:focus, textarea:focus{
+    outline:none;
+    border-color:var(--gold);
+  }
+  select{
+    appearance:none;
+    -webkit-appearance:none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--gold) 50%), linear-gradient(135deg, var(--gold) 50%, transparent 50%);
+    background-position: calc(100% - 20px) center, calc(100% - 15px) center;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat:no-repeat;
+    cursor:pointer;
+  }
+  .cat-preview{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    margin-top:10px;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size:12.5px;
+    color:var(--ink-dim);
+  }
+  .cat-dot{
+    width:10px;height:10px;border-radius:50%;
+    background:var(--catcolor, var(--gold));
+    box-shadow:0 0 8px var(--catcolor, var(--gold));
+    flex-shrink:0;
+  }
+  fieldset{
+    border:none;
+    padding:0;
+    margin:26px 0 0;
+    border-top:1px dashed var(--line);
+    padding-top:20px;
+  }
+  fieldset legend{
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size:12.5px;
+    letter-spacing:0.5px;
+    text-transform:uppercase;
+    color:var(--ink-dim);
+    padding:0 6px 0 0;
+  }
+  .generate-btn-wrap{
+    text-align:center;
+    margin:34px 0 8px;
+  }
+  button{
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size:14px;
+    letter-spacing:0.5px;
+    background:var(--gold);
+    color:#1a1620;
+    border:none;
+    border-radius:7px;
+    padding:13px 26px;
+    cursor:pointer;
+    font-weight:600;
+    transition:opacity .15s ease;
+  }
+  button:hover{opacity:0.85;}
+  button.secondary{
+    background:transparent;
+    color:var(--ink-dim);
+    border:1px solid var(--line);
+  }
+  #generateBtn{
+    font-size:15px;
+    padding:15px 40px;
+  }
+  .output-actions{
+    display:flex;
+    gap:10px;
+    margin-bottom:14px;
+    align-items:center;
+  }
+  #output{
+    width:100%;
+    min-height:200px;
+    background:#100e17;
+    border:1px solid var(--line);
+    border-radius:8px;
+    color:#c7c1dd;
+    font-family: "SF Mono", "Menlo", monospace;
+    font-size:12px;
+    line-height:1.6;
+    padding:16px;
+    white-space:pre;
+    overflow:auto;
+  }
+  .copied-msg{
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size:12.5px;
+    color:var(--numen);
+    margin-left:4px;
+    opacity:0;
+    transition:opacity .2s ease;
+  }
+  .copied-msg.show{opacity:1;}
+  .hint{
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size:12px;
+    color:var(--ink-dim);
+    margin-top:7px;
+    line-height:1.4;
+  }
+  #outputPanel{display:none;}
+</style>
+</head>
+<body>
+
+<h1>Generatore di Scheda</h1>
+<div class="subtitle">compila i campi &nbsp;·&nbsp; premi "genera codice"</div>
+
+<div class="wrap">
+
+  <!-- FORM -->
+  <div class="panel">
+    <h2>Dati</h2>
+
+    <label for="nome">Nome e Cognome</label>
+    <input type="text" id="nome" placeholder="es. Elara Ravenscroft">
+
+    <label for="foto">Link foto</label>
+    <input type="text" id="foto" placeholder="https://...">
+
+    <fieldset>
+      <legend>Generalità</legend>
+
+      <label for="nascita">Data e luogo di nascita</label>
+      <input type="text" id="nascita" placeholder="es. 4 luglio 1998, Palermo">
+
+      <label for="stirpe">Stirpe</label>
+      <input type="text" id="stirpe" placeholder="es. Purosangue">
+
+      <label for="bacchetta">Bacchetta</label>
+      <input type="text" id="bacchetta" placeholder="es. Sambuco, piuma di fenice, 28 cm">
+
+      <label for="allineamento">Allineamento</label>
+      <select id="allineamento">
+        <option value="">— seleziona —</option>
+        <option value="Legale Buono">Legale Buono</option>
+        <option value="Neutrale Buono">Neutrale Buono</option>
+        <option value="Caotico Buono">Caotico Buono</option>
+        <option value="Legale Neutrale">Legale Neutrale</option>
+        <option value="Neutrale Puro">Neutrale Puro</option>
+        <option value="Caotico Neutrale">Caotico Neutrale</option>
+        <option value="Legale Malvagio">Legale Malvagio</option>
+        <option value="Neutrale Malvagio">Neutrale Malvagio</option>
+        <option value="Caotico Malvagio">Caotico Malvagio</option>
+      </select>
+
+      <label for="categoria">Categoria Magica</label>
+      <select id="categoria">
+        <option value="">— seleziona —</option>
+        <option value="Acumen">Acumen</option>
+        <option value="Animus">Animus</option>
+        <option value="Ars">Ars</option>
+        <option value="Numen">Numen</option>
+        <option value="Sensus">Sensus</option>
+        <option value="Voluntas">Voluntas</option>
+        <option value="Intracciabile">Intracciabile</option>
+      </select>
+      <div class="cat-preview" id="catPreview">
+        <span class="cat-dot" id="catDot"></span>
+        <span id="catLabel">nessuna categoria selezionata</span>
+      </div>
+
+      <label for="mestiere">Mestiere</label>
+      <select id="mestiere">
+        <option value="">— seleziona —</option>
+        <option value="Auror">Auror</option>
+        <option value="Spezzaincantesimi">Spezzaincantesimi</option>
+        <option value="Medimago">Medimago</option>
+      </select>
+      <div class="hint">Il campo finale sarà: "<span id="catMestierePreview">Categoria, Mestiere</span>"</div>
+
+      <label for="scuola">Scuola di Magia e Casa frequentata</label>
+      <input type="text" id="scuola" placeholder="es. Accademia di Praga, Casa del Corvo">
+
+      <label for="animali">Animali da compagnia</label>
+      <input type="text" id="animali" placeholder="lascia vuoto per '-'">
+    </fieldset>
+
+    <fieldset>
+      <legend>Storia</legend>
+      <label for="storia">Storia</label>
+      <textarea id="storia" placeholder="Racconto biografico..."></textarea>
+      <label for="infopub">Info pubbliche</label>
+      <textarea id="infopub" placeholder="Informazioni note a tutti..."></textarea>
+      <label for="infopriv">Info private</label>
+      <textarea id="infopriv" placeholder="Informazioni riservate/plot..."></textarea>
+    </fieldset>
+
+    <fieldset>
+      <legend>Aspetto</legend>
+      <label for="aspetto">Aspetto fisico</label>
+      <textarea id="aspetto" placeholder="Descrizione fisica..."></textarea>
+    </fieldset>
+
+    <fieldset>
+      <legend>Carattere</legend>
+      <label for="carattere">Carattere</label>
+      <textarea id="carattere" placeholder="Tratti caratteriali..."></textarea>
+    </fieldset>
+
+    <fieldset>
+      <legend>Relazioni</legend>
+      <label for="relazioni">Relazioni</label>
+      <textarea id="relazioni" placeholder="Legami con altri personaggi..."></textarea>
+    </fieldset>
+
+    <div class="generate-btn-wrap">
+      <button id="generateBtn">Genera codice</button>
+    </div>
+  </div>
+
+  <!-- OUTPUT -->
+  <div class="panel" id="outputPanel">
+    <h2>Codice generato</h2>
+    <div class="output-actions">
+      <button id="copyBtn">Copia codice</button>
+      <button id="downloadBtn" class="secondary">Scarica .html</button>
+      <span class="copied-msg" id="copiedMsg">Copiato ✓</span>
+    </div>
+    <div id="output"></div>
+  </div>
+
+</div>
+
+<script>
+const CAT_INFO = {
+  "Acumen":       { class: "schedaacumen",  color: "#4b7bc9" },
+  "Animus":       { class: "schedaanimus",  color: "#c94b6e" },
+  "Ars":          { class: "schedaars",     color: "#7b4bc9" },
+  "Numen":        { class: "schedanumen",   color: "#4bc98f" },
+  "Sensus":       { class: "schedasensus",  color: "#c9944b" },
+  "Voluntas":     { class: "schedavoluntas",color: "#c94b4b" },
+  "Intracciabile":{ class: "schedaintracc", color: "#6b6b7d" }
+};
+
+const fields = ["nome","foto","nascita","stirpe","bacchetta","allineamento",
+  "categoria","mestiere","scuola","animali","storia","infopub","infopriv",
+  "aspetto","carattere","relazioni"];
+
+const el = {};
+fields.forEach(id => el[id] = document.getElementById(id));
+
+function updateCatPreview(){
+  const cat = el.categoria.value;
+  const dot = document.getElementById('catDot');
+  const label = document.getElementById('catLabel');
+  const previewSpan = document.getElementById('catMestierePreview');
+  if(cat && CAT_INFO[cat]){
+    dot.style.setProperty('--catcolor', CAT_INFO[cat].color);
+    label.textContent = "categoria: " + cat + " → classe ." + CAT_INFO[cat].class;
+  } else {
+    dot.style.setProperty('--catcolor', '#c9a24b');
+    label.textContent = "nessuna categoria selezionata";
+  }
+  const mestiere = el.mestiere.value.trim();
+  previewSpan.textContent = (cat || "Categoria") + (mestiere ? ", " + mestiere : ", Mestiere");
+}
+
+function generate(){
+  const nome = el.nome.value.trim() || "Nome e Cognome QUI";
+  const foto = el.foto.value.trim() || "LINK FOTO QUI";
+  const nascita = el.nascita.value.trim();
+  const stirpe = el.stirpe.value.trim();
+  const bacchetta = el.bacchetta.value.trim();
+  const allineamento = el.allineamento.value;
+  const cat = el.categoria.value;
+  const mestiere = el.mestiere.value;
+  const scuola = el.scuola.value.trim();
+  const animali = el.animali.value.trim() || "-";
+
+  const storia = el.storia.value.trim();
+  const infopub = el.infopub.value.trim();
+  const infopriv = el.infopriv.value.trim();
+  const aspetto = el.aspetto.value.trim();
+  const carattere = el.carattere.value.trim();
+  const relazioni = el.relazioni.value.trim();
+
+  const schedaClass = (cat && CAT_INFO[cat]) ? CAT_INFO[cat].class : "schedanumen/schedaanimus/schedaars/schedavoluntas/schedasensus/schedaacumen/schedaintracc";
+  const catMestiere = cat ? (cat + (mestiere ? ", " + mestiere : ",")) : "";
+
+  const html =
+`<div class="${schedaClass}"><div data-slide="effect:slide{left}; duration:200ms; buttons:buttons;" class="scheda_slide_base"><div data-label="Generalità">
+<div class="nome"><div style="text-align:center">${nome}</div></div><img class="schedafoto" src="${foto}">
+
+<div class="cont"><div class="cont0"><b>Data e luogo di Nascita:</b> ${nascita}
+
+<b>Stirpe:</b> ${stirpe}
+
+<b>Bacchetta:</b> ${bacchetta}
+
+<b>Allineamento:</b> ${allineamento}
+
+<b>Categoria Magica e Mestiere:</b> ${catMestiere}
+
+<b>Scuola di Magia e Casa frequentata:</b> ${scuola}
+
+<b>Animali da compagnia:</b> ${animali}
+</div></div></div><div data-label="Storia"><p class="titolo-scheda"><i class="fa-solid fa-pen"></i> STORIA</p><div class="cont"><div class="cont0">${storia}
+
+<p class="titolo-scheda"><i class="fa-solid fa-newspaper"></i> INFO PUBBLICHE</p>
+${infopub}
+
+<p class="titolo-scheda"><i class="fa-solid fa-eye-low-vision"></i> INFO PRIVATE</p>
+${infopriv}
+
+</div></div></div><div data-label="Aspetto"><p class="titolo-scheda"><i class="fa-solid fa-person"></i> ASPETTO</p><div class="cont"><div class="cont0">${aspetto}
+
+</div></div></div><div data-label="Carattere"><p class="titolo-scheda"><i class="fa-solid fa-masks-theater"></i> CARATTERE</p><div class="cont"><div class="cont0">${carattere}
+
+</div></div></div><div data-label="Relazioni"><p class="titolo-scheda"><i class="fa-solid fa-people-group"></i> RELAZIONI</p><div class="cont"><div class="cont0">${relazioni}
+</div></div></div></div></div>`;
+
+  document.getElementById('output').textContent = html;
+  document.getElementById('outputPanel').style.display = 'block';
+  document.getElementById('outputPanel').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+el.categoria.addEventListener('change', updateCatPreview);
+el.mestiere.addEventListener('change', updateCatPreview);
+
+document.getElementById('generateBtn').addEventListener('click', generate);
+
+document.getElementById('copyBtn').addEventListener('click', () => {
+  const text = document.getElementById('output').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const msg = document.getElementById('copiedMsg');
+    msg.classList.add('show');
+    setTimeout(() => msg.classList.remove('show'), 1500);
+  });
+});
+
+document.getElementById('downloadBtn').addEventListener('click', () => {
+  const text = document.getElementById('output').textContent;
+  const blob = new Blob([text], {type: "text/html"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const nomeFile = (el.nome.value.trim() || "scheda").toLowerCase().replace(/[^a-z0-9]+/g,'-');
+  a.download = "scheda-" + nomeFile + ".html";
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+updateCatPreview();
+</script>
+
+</body>
+</html>
