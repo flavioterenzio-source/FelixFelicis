@@ -1,0 +1,257 @@
+Perfetto! Ora abbiamo il quadro completo e definitivo della seconda scheda (che tra l'altro ha rimosso i Parametri Sociali e spostato i Punti Post direttamente in cima al tab Punti).
+
+Ho aggiornato il convertitore inserendo lo scheletro esatto che mi hai passato per la seconda parte, mantenendo l'estrazione automatica di tutti i dati (inclusi i link a *Dispensa degli ingredienti* e i vari `<details>` del Bagaglio) e iniettando il codice degli studi ripulito esattamente sotto `<p class="titolo-scheda"><i class="fa-solid fa-book"></i> PIANO DI STUDI - VII ANNO</p>`.
+
+Ecco il file HTML completo aggiornato. Sostituisci il vecchio file con questo:
+
+```html
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Convertitore Schede Studenti</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f0f3f8; color: #333; max-width: 1400px; margin: 0 auto; padding: 20px; }
+        h1 { color: #2c3e50; text-align: center; margin-bottom: 5px; }
+        p.subtitle { text-align: center; color: #666; margin-top: 0; margin-bottom: 25px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .full-width { grid-column: 1 / -1; }
+        .box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        textarea { width: 100%; height: 220px; font-family: monospace; font-size: 13px; border: 1px solid #ccc; border-radius: 4px; padding: 10px; box-sizing: border-box; resize: vertical; background: #fafafa; }
+        textarea[readonly] { background: #f0f4f8; border-color: #cbd5e1; height: 280px; }
+        .flex-inputs { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        button { background-color: #e67e22; color: white; border: none; padding: 15px; font-size: 18px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; transition: background 0.2s; box-shadow: 0 4px 6px rgba(230, 126, 34, 0.2); }
+        button:hover { background-color: #d35400; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #34495e; }
+    </style>
+</head>
+<body>
+
+    <h1>Riorganizzatore Schede Studenti & Piano di Studi</h1>
+    <p class="subtitle">Incolla la vecchia scheda e il codice degli studi per ottenere le due nuove schede definitive.</p>
+
+    <div class="grid">
+        <!-- INPUT DATO VECCHIO + STUDI -->
+        <div class="box full-width flex-inputs">
+            <div>
+                <label for="vecchiaScheda">1. Incolla qui l'HTML della Vecchia Scheda Studente:</label>
+                <textarea id="vecchiaScheda" placeholder="<div class=&quot;schedagrifo/...&quot;>..."></textarea>
+            </div>
+            <div>
+                <label for="codiceStudi">2. Incolla Codice Aggiuntivo Studi:</label>
+                <textarea id="codiceStudi" placeholder="<div style=&quot;...&quot;><table..."></textarea>
+            </div>
+        </div>
+
+        <!-- BOTTONE DI CONVERSIONE -->
+        <div class="full-width">
+            <button onclick="convertiSchedeStudenti()">Trasforma in Schede Nuove</button>
+        </div>
+
+        <!-- OUTPUT PRIMA SCHEDA -->
+        <div class="box">
+            <label for="nuovaPrima">Output: Prima Parte Nuova (Anagrafica & Bio)</label>
+            <textarea id="nuovaPrima" readonly placeholder="Il codice per la prima scheda apparirà qui..."></textarea>
+        </div>
+
+        <!-- OUTPUT SECONDA SCHEDA -->
+        <div class="box">
+            <label for="nuovaSeconda">Output: Seconda Parte Nuova (Master, Punti & Studi)</label>
+            <textarea id="nuovaSeconda" readonly placeholder="Il codice per la seconda scheda apparirà qui..."></textarea>
+        </div>
+    </div>
+
+    <script>
+        function estraiContenutoDopoB(nodo, stringaB) {
+            if (!nodo) return "";
+            const elementiB = nodo.querySelectorAll('b');
+            for (let b of elementiB) {
+                if (b.textContent.toLowerCase().includes(stringaB.toLowerCase())) {
+                    let contenuto = "";
+                    let prossimo = b.nextSibling;
+                    while (prossimo && prossimo.nodeName !== 'B' && prossimo.nodeName !== 'HR') {
+                        contenuto += prossimo.nodeType === 3 ? prossimo.textContent : prossimo.outerHTML;
+                        prossimo = prossimo.nextSibling;
+                    }
+                    return contenuto.replace(/^\s*:\s*/, '').trim();
+                }
+            }
+            return "";
+        }
+
+        function elaboraCodiceStudi(rawStudi) {
+            if (!rawStudi.trim()) return "<!-- Nessun dato studi inserito -->";
+            
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(rawStudi, 'text/html');
+            
+            const tuttiDetails = doc.querySelectorAll('details');
+            let stringaDetailsPulita = "";
+            
+            tuttiDetails.forEach(details => {
+                details.removeAttribute('style');
+                stringaDetailsPulita += details.outerHTML + "\n";
+            });
+            
+            return stringaDetailsPulita.trim();
+        }
+
+        function convertiSchedeStudenti() {
+            const rawHtml = document.getElementById('vecchiaScheda').value;
+            const rawStudi = document.getElementById('codiceStudi').value;
+
+            if (!rawHtml.trim()) {
+                alert("Per favore, inserisci il codice della vecchia scheda dello studente.");
+                return;
+            }
+
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(rawHtml, 'text/html');
+
+            // Mappatura tab vecchi
+            const tabGeneralita = doc.querySelector('[data-label="Generalità"]');
+            const tabBiografia = doc.querySelector('[data-label="Biografia"]');
+            const tabConoscenze = doc.querySelector('[data-label="Conoscenze"]');
+            const tabBagaglio = doc.querySelector('[data-label="Bagaglio"]');
+            const tabPunti = doc.querySelector('[data-label="Punti"]');
+
+            // Recupero classe dinamica casata (schedagrifo, schedacorvo, schedaserpe, schedatasso)
+            const wrapperPrincipale = doc.querySelector('div[class*="scheda"]');
+            const classeScheda = wrapperPrincipale ? wrapperPrincipale.className : "schedagrifo/schedacorvo/schedaserpe/schedatasso";
+
+            // --- ESTRAZIONE DATI GENERALITÀ ---
+            const nomeIntero = tabGeneralita ? tabGeneralita.querySelector('.nome')?.innerHTML || '<div style="text-align:center">Nome e Cognome QUI</div>' : '<div style="text-align:center">Nome e Cognome QUI</div>';
+            const fotoUrl = tabGeneralita ? tabGeneralita.querySelector('.schedafoto')?.getAttribute('src') || 'LINK FOTO QUI' : 'LINK FOTO QUI';
+            
+            const cont0Gen = tabGeneralita ? tabGeneralita.querySelector('.cont0') : null;
+            const dataNascita = estraiContenutoDopoB(cont0Gen, "Data e luogo di nascita");
+            const stirpe = estraiContenutoDopoB(cont0Gen, "Stirpe");
+            const razza = estraiContenutoDopoB(cont0Gen, "Razza");
+            const bacchetta = estraiContenutoDopoB(cont0Gen, "Bacchetta");
+            const allineamento = estraiContenutoDopoB(cont0Gen, "Allineamento");
+            const animali = estraiContenutoDopoB(cont0Gen, "Animali da compagnia");
+            const annoFrequenza = estraiContenutoDopoB(cont0Gen, "Anno di frequenza");
+
+            // --- ESTRAZIONE DATI BIOGRAFIA ---
+            const cont0Bio = tabBiografia ? tabBiografia.querySelector('.cont0') : null;
+            const aspettoFisico = estraiContenutoDopoB(cont0Bio, "Aspetto fisico");
+            const storia = estraiContenutoDopoB(cont0Bio, "Storia");
+            const infoPubbliche = estraiContenutoDopoB(cont0Bio, "Informazioni di dominio pubblico");
+            const infoPrivate = estraiContenutoDopoB(cont0Bio, "Informazioni private");
+            const carattere = estraiContenutoDopoB(cont0Bio, "Carattere");
+            const relazioni = estraiContenutoDopoB(cont0Bio, "Relazioni");
+
+            // --- ESTRAZIONE PARAMETRI ---
+            const tabellaMagici = tabPunti ? tabPunti.querySelector('.magici table')?.innerHTML || "" : "";
+            const tabellaFisici = tabPunti ? tabPunti.querySelector('.fisici table')?.innerHTML || "" : "";
+
+            // Economia e Dettagli Bagaglio
+            const galeoniVecchi = estraiContenutoDopoB(tabBagaglio, "Galeoni");
+            const puntiPost = estraiContenutoDopoB(tabPunti, "Punti Post") || "//";
+            const dispensaLink = estraiContenutoDopoB(tabBagaglio, "Dispensa degli ingredienti");
+
+            const estraiDetails = (tab, termine) => {
+                if (!tab) return "";
+                const summaries = tab.querySelectorAll('summary');
+                for (let s of summaries) {
+                    if (s.textContent.toLowerCase().includes(termine.toLowerCase())) {
+                        return s.parentNode.innerHTML.replace(/<summary>.*?<\/summary>/i, '').trim();
+                    }
+                }
+                return "";
+            };
+
+            const detOggetti = estraiDetails(tabBagaglio, "Oggetti");
+            const detPremi = estraiDetails(tabBagaglio, "Premi Fanta Felix");
+            const detPozioni = estraiDetails(tabBagaglio, "Pozioni");
+            const detImmunita = estraiDetails(tabBagaglio, "Immunità");
+
+            // Conoscenze
+            const contConoscenzeVecchie = tabConoscenze ? tabConoscenze.querySelector('.cont') : null;
+            const cScolastiche = estraiContenutoDopoB(contConoscenzeVecchie, "Scolastiche");
+            const cExtra = estraiContenutoDopoB(contConoscenzeVecchie, "Extra");
+            const cAvanzate = estraiContenutoDopoB(contConoscenzeVecchie, "Avanzate");
+            const cAltro = estraiContenutoDopoB(contConoscenzeVecchie, "Altro");
+
+            // --- ELABORAZIONE PACCHETTO STUDI ---
+            const studiRielaborati = elaboraCodiceStudi(rawStudi);
+
+            // ==========================================
+            // GENERA NUOVA PRIMA SCHEDA (ANAGRAFICA)
+            // ==========================================
+            const nuovaPrimaParte = `<div class="${classeScheda}"><div data-slide="effect:slide{left}; duration:200ms; buttons:buttons;" class="scheda_slide_base"><div data-label="Generalità">
+<div class="nome">${nomeIntero}</div><img class="schedafoto" src="${fotoUrl}">
+
+<div class="cont"><div class="cont0"><b>Data e luogo di Nascita:</b> ${dataNascita}
+
+<b>Stirpe:</b> ${stirpe}
+
+<b>Razza:</b> ${razza}
+
+<b>Bacchetta:</b> ${bacchetta}
+
+<b>Allineamento:</b> ${allineamento}
+
+<b>Animali da compagnia:</b> ${animali}
+
+<b>Anno di frequenza:</b> ${annoFrequenza}
+</div></div></div><div data-label="Storia"><p class="titolo-scheda"><i class="fa-solid fa-pen"></i> STORIA</p><div class="cont"><div class="cont0">${storia || "STORIA QUI"}
+
+<p class="titolo-scheda"><i class="fa-solid fa-newspaper"></i> INFO PUBBLICHE</p>
+${infoPubbliche || "INFO PUBBLICHE QUI"}
+
+<p class="titolo-scheda"><i class="fa-solid fa-eye-low-vision"></i> INFO PRIVATE</p>
+${infoPrivate || "INFO PRIVATE QUI"}
+
+</div></div></div><div data-label="Aspetto"><p class="titolo-scheda"><i class="fa-solid fa-person"></i> ASPETTO</p><div class="cont"><div class="cont0">${aspettoFisico || "ASPETTO FISICO QUI"}
+
+</div></div></div><div data-label="Carattere"><p class="titolo-scheda"><i class="fa-solid fa-masks-theater"></i> CARATTERE</p><div class="cont"><div class="cont0">${carattere || "CARATTERE QUI"}
+
+</div></div></div><div data-label="Relazioni"><p class="titolo-scheda"><i class="fa-solid fa-people-group"></i> RELAZIONI</p><div class="cont"><div class="cont0">${relazioni || "RELAZIONI QUI"}
+</div></div></div></div></div>`;
+
+            // ==========================================
+            // GENERA NUOVA SECONDA SCHEDA (MASTER & STUDI)
+            // ==========================================
+            const nuovaSecondaParte = `<div class="${classeScheda}"><div data-slide="effect:slide{left}; duration:200ms; buttons:buttons;" class="scheda_slide_base"><div data-label="Punti"><p class="titolo-scheda"><i class="fa-solid fa-chart-column"></i> PUNTI</p><div class="cont"><b>Punti Post:</b> ${puntiPost}
+
+<div class="magici"><table>${tabellaMagici || `<th colspan="6">Parametri Magici</th><tr class="nomi"><td>Acume</td><td>Empatia</td><td>Percezione</td><td>Potenza</td><td>Tecnica</td><td>Volontà</td></tr><tr class="valori"><td>N° Punti Acume</td><td>N° Punti Empatia</td><td>N° Punti Percezione</td><td>N° Punti Potenza</td><td>N° Punti Punti Tecnica</td><td>N° Punti Punti Volontà</td></tr>`}</table></div>
+<div class="fisici"><table>${tabellaFisici || `<th colspan="4">Parametri Fisici</th><tr class="nomi"><td>Destrezza</td><td>Fatica</td><td>Resistenza</td><td>Salute</td></tr><tr class="valori"><td>N° Punti Destrezza</td><td>N° Punti Fatica</td><td>N° Punti Resistenza</td><td>N° Punti Salute</td></tr>`}</table></div>
+
+</div></div><div data-label="Studi"><p class="titolo-scheda"><i class="fa-solid fa-book"></i> PIANO DI STUDI - VII ANNO</p><div class="cont">
+${studiRielaborati}
+</div></div>
+<div data-label="Bagaglio"><p class="titolo-scheda"><i class="fa-solid fa-suitcase"></i> BAGAGLIO</p><div class="cont"><i class="fa-solid fa-coins"></i> <b>Galeoni:</b> ${galeoniVecchi || "//"}
+
+<hr>
+<i class="fa-solid fa-feather"></i> <b>Dispensa degli ingredienti:</b> ${dispensaLink || "(link)"}
+
+<details><summary><i class="fa-solid fa-award"></i> <b>Premi Fanta Felix Felicis:</b></summary>${detPremi}</details>
+<details><summary><i class="fa-solid fa-broom-ball"></i> <b>Oggetti:</b></summary>${detOggetti}</details>
+<details><summary><i class="fa-solid fa-flask-vial"></i> <b>Pozioni:</b></summary>${detPozioni}</details>
+<details><summary><i class="fa-solid fa-disease"></i> <b>Immunità:</b></summary>${detImmunita}</details>
+</div></div><div data-label="Conoscenze"><div class="cont"><p class="titolo-scheda"><i class="fa-solid fa-book-bookmark"></i> CONOSCENZE</p>
+
+<b> <i class="fa-brands fa-fort-awesome"></i> Scolastiche - Altri anni</b>${cScolastiche}
+
+<hr>
+<b><i class="fa-solid fa-plus"></i> Extra</b>${cExtra}
+
+<hr>
+<b><i class="fa-solid fa-trophy"></i> Avanzate</b>${cAvanzate}
+
+<hr>
+<b><i class="fa-solid fa-bookmark"></i> Altro</b>${cAltro}
+
+</div></div>
+</div></div>`;
+
+            // Rilascio dei codici
+            document.getElementById('nuovaPrima').value = nuovaPrimaParte;
+            document.getElementById('nuovaSeconda').value = nuovaSecondaParte;
+        }
+    </script>
+</body>
+</html>
+
+```
