@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Convertitore Schede GDR</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; background: #eef2f7; color: #333; max-width: 1400px; margin: 0 auto; padding: 20px; }
+        h1 { color: #2c3e50; text-align: center; margin-bottom: 5px; }
+        p.subtitle { text-align: center; color: #666; margin-top: 0; margin-bottom: 25px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .full-width { grid-column: 1 / -1; }
+        .box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        textarea { width: 100%; height: 280px; font-family: monospace; font-size: 13px; border: 1px solid #ccc; border-radius: 4px; padding: 10px; box-sizing: border-box; resize: vertical; background: #fafafa; }
+        textarea[readonly] { background: #f0f4f8; border-color: #cbd5e1; }
+        button { background-color: #27ae60; color: white; border: none; padding: 15px; font-size: 18px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; transition: background 0.2s; box-shadow: 0 4px 6px rgba(39, 174, 96, 0.2); }
+        button:hover { background-color: #219653; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #34495e; }
+        .warning { color: #e67e22; font-size: 12px; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+    <h1>Riorganizzatore Schede Personaggio</h1>
+    <p class="subtitle">Inserisci la vecchia scheda compilata per generare istantaneamente le due nuove schede separate.</p>
+
+    <div class="grid">
+        <!-- VECCHIA SCHEDA INPUT -->
+        <div class="box full-width">
+            <label for="vecchiaScheda">Incolla qui l'HTML della Vecchia Scheda Compilata:</label>
+            <textarea id="vecchiaScheda" placeholder="<div class=&quot;schedanumen/...&quot;>..."></textarea>
+        </div>
+
+        <!-- AZIONE -->
+        <div class="full-width">
+            <button onclick="convertiSchede()">Converti e Sdoppia Scheda</button>
+        </div>
+
+        <!-- NUOVA PRIMA PARTE -->
+        <div class="box">
+            <label for="nuovaPrima">1. Prima Parte Nuova (Anagrafica & Bio):</label>
+            <textarea id="nuovaPrima" readonly placeholder="Il codice per la prima scheda apparirà qui..."></textarea>
+        </div>
+
+        <!-- NUOVA SECONDA PARTE -->
+        <div class="box">
+            <label for="nuovaSeconda">2. Seconda Parte Nuova (Master & Punti):</label>
+            <textarea id="nuovaSeconda" readonly placeholder="Il codice per la seconda scheda apparirà qui..."></textarea>
+        </div>
+    </div>
+
+    <script>
+        function estraiContenutoDopoB(nodo, stringaB) {
+            if (!nodo) return "";
+            const elementiB = nodo.querySelectorAll('b');
+            for (let b of elementiB) {
+                if (b.textContent.toLowerCase().includes(stringaB.toLowerCase())) {
+                    let contenuto = "";
+                    let prossimo = b.nextSibling;
+                    // Raccoglie tutto il testo/html finché non incontra un altro tag <b> o un <hr> o finisce il blocco
+                    while (prossimo && prossimo.nodeName !== 'B' && prossimo.nodeName !== 'HR') {
+                        contenuto += prossimo.nodeType === 3 ? prossimo.textContent : prossimo.outerHTML;
+                        prossimo = prossimo.nextSibling;
+                    }
+                    // Pulisce spazi e i due punti iniziali se rimasti isolati nel testo
+                    return contenuto.replace(/^\s*:\s*/, '').trim();
+                }
+            }
+            return "";
+        }
+
+        function convertiSchede() {
+            const rawHtml = document.getElementById('vecchiaScheda').value;
+            if (!rawHtml.trim()) {
+                alert("Inserisci il codice della vecchia scheda prima di convertire!");
+                return;
+            }
+
+            // Carichiamo l'HTML in un parser virtuale
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(rawHtml, 'text/html');
+
+            // Identifichiamo i vecchi tab tramite il data-label
+            const tabGeneralita = doc.querySelector('[data-label="Generalità"]');
+            const tabBiografia = doc.querySelector('[data-label="Biografia"]');
+            const tabConoscenze = doc.querySelector('[data-label="Conoscenze"]');
+            const tabBagaglio = doc.querySelector('[data-label="Bagaglio"]');
+            const tabPunti = doc.querySelector('[data-label="Punti"]');
+            const tabSapienze = doc.querySelector('[data-label="Sapienze"]');
+
+            // Classe principale (mantiene la classe dinamica originale dell'utente, es: schedanumen, schedaanimus ecc)
+            const wrapperPrincipale = doc.querySelector('div[class*="scheda"]');
+            const classeScheda = wrapperPrincipale ? wrapperPrincipale.className : "schedanumen/schedaanimus/schedaars/schedavoluntas/schedasensus/schedaacumen/schedaintracc";
+
+            // --- 1. ESTRAZIONE DATI GENERALITÀ ---
+            const nomeIntero = tabGeneralita ? tabGeneralita.querySelector('.nome')?.innerHTML || '<div style="text-align:center">Nome e Cognome QUI</div>' : '<div style="text-align:center">Nome e Cognome QUI</div>';
+            const fotoUrl = tabGeneralita ? tabGeneralita.querySelector('.schedafoto')?.getAttribute('src') || 'LINK FOTO QUI' : 'LINK FOTO QUI';
+            
+            const cont0Gen = tabGeneralita ? tabGeneralita.querySelector('.cont0') : null;
+            const dataNascita = estraiContenutoDopoB(cont0Gen, "Data e luogo di nascita");
+            const stirpe = estraiContenutoDopoB(cont0Gen, "Stirpe");
+            const bacchetta = estraiContenutoDopoB(cont0Gen, "Bacchetta");
+            const allineamento = estraiContenutoDopoB(cont0Gen, "Allineamento");
+            const mestiere = estraiContenutoDopoB(cont0Gen, "Categoria Magica e Mestiere");
+            const scuola = estraiContenutoDopoB(cont0Gen, "Scuola di Magia e Casa frequentata");
+            const animali = estraiContenutoDopoB(cont0Gen, "Animali da compagnia") || "-";
+
+            // --- 2. ESTRAZIONE DATI BIOGRAFIA ---
+            const cont0Bio = tabBiografia ? tabBiografia.querySelector('.cont0') : null;
+            const aspettoFisico = estraiContenutoDopoB(cont0Bio, "Aspetto fisico");
+            const storia = estraiContenutoDopoB(cont0Bio, "Storia");
+            const infoPubbliche = estraiContenutoDopoB(cont0Bio, "Informazioni di dominio pubblico");
+            const infoPrivate = estraiContenutoDopoB(cont0Bio, "Informazioni private");
+            const carattere = estraiContenutoDopoB(cont0Bio, "Carattere");
+            const relazioni = estraiContenutoDopoB(cont0Bio, "Relazioni");
+
+            // --- 3. ESTRAZIONE MECCANICHE E PUNTI ---
+            const tabellaMagici = tabPunti ? tabPunti.querySelector('.magici table')?.innerHTML || "" : "";
+            const tabellaFisici = tabPunti ? tabPunti.querySelector('.fisici table')?.innerHTML || "" : "";
+            const tabellaSocialiVecchia = tabPunti ? tabPunti.querySelector('.sociali table') : null;
+
+            // Estrazione valori specifici sociali e prestigio
+            let dialettica = "N° Punti Dialettica";
+            let popolarita = "N° Punti Popolarità";
+            let prestigioVal = "QUI PRESTIGIO";
+            let prestigioPercentuale = "QUI PRESTIGIO";
+            let prestigioMax = "QUI PRESTIGIO MAX";
+
+            if (tabellaSocialiVecchia) {
+                const righeValori = tabellaSocialiVecchia.querySelectorAll('.valori');
+                if (righeValori[0]) {
+                    dialettica = righeValori[0].cells[0]?.innerHTML.trim() || dialettica;
+                    popolarita = righeValori[0].cells[1]?.innerHTML.trim() || popolarita;
+                }
+                const barraPrestigio = tabellaSocialiVecchia.querySelector('.prestigio');
+                const barraMax = tabellaSocialiVecchia.querySelector('.max');
+                if (barraPrestigio) {
+                    prestigioVal = barraPrestigio.innerHTML.trim() || prestigioVal;
+                    prestigioPercentuale = barraPrestigio.style.width.replace('%', '') || prestigioPercentuale;
+                }
+                if (barraMax) {
+                    prestigioMax = barraMax.innerHTML.trim() || prestigioMax;
+                }
+            }
+
+            // Sapienze (estrae tutto il blocco interno pulito)
+            const sapienzeContenuto = tabSapienze ? tabSapienze.querySelector('.cont')?.innerHTML.trim() || "QUI SAPIENZA 1\nQUI SAPIENZA 2\nQUI SAPIENZA 3\nQUI SAPIENZA 4" : "QUI SAPIENZA 1\nQUI SAPIENZA 2\nQUI SAPIENZA 3\nQUI SAPIENZA 4";
+
+            // Bagaglio & Conoscenze
+            const galeoniVecchi = estraiContenutoDopoB(tabBagaglio, "Galeoni");
+            const debitoGaleoni = estraiContenutoDopoB(tabBagaglio, "Debito (Galeoni)");
+            const puntiPost = estraiContenutoDopoB(tabPunti, "Punti Post");
+            const debitoPuntiPost = estraiContenutoDopoB(tabPunti, "Debito (Punti Post)");
+
+            // Dettagli (Oggetti, Pozioni, ecc.)
+            const estraiDetails = (tab, termine) => {
+                if (!tab) return "";
+                const summaries = tab.querySelectorAll('summary');
+                for (let s of summaries) {
+                    if (s.textContent.toLowerCase().includes(termine.toLowerCase())) {
+                        return s.parentNode.innerHTML.replace(/<summary>.*?<\/summary>/i, '').trim();
+                    }
+                }
+                return "";
+            };
+
+            const detOggetti = estraiDetails(tabBagaglio, "Oggetti");
+            const detPremi = estraiDetails(tabBagaglio, "Premi Fanta Felix");
+            const detPozioni = estraiDetails(tabBagaglio, "Pozioni");
+            const detImmunita = estraiDetails(tabBagaglio, "Immunità");
+
+            // Conoscenze scolastiche ed extra
+            const contConoscenzeVecchie = tabConoscenze ? tabConoscenze.querySelector('.cont') : null;
+            const cScolastiche = estraiContenutoDopoB(contConoscenzeVecchie, "Conoscenze Scolastiche");
+            const cExtra = estraiContenutoDopoB(contConoscenzeVecchie, "Extra");
+            const cAvanzate = estraiContenutoDopoB(contConoscenzeVecchie, "Avanzate");
+            const cAltro = estraiContenutoDopoB(contConoscenzeVecchie, "Altro");
+
+
+            // ==========================================
+            // GENERAZIONE PRIMA PARTE (ANAGRAFICA)
+            // ==========================================
+            const primaParteNuova = `<div class="${classeScheda}"><div data-slide="effect:slide{left}; duration:200ms; buttons:buttons;" class="scheda_slide_base"><div data-label="Generalità">
+<div class="nome">${nomeIntero}</div><img class="schedafoto" src="${fotoUrl}">
+
+<div class="cont"><div class="cont0"><b>Data e luogo di Nascita:</b> ${dataNascita}
+
+<b>Stirpe:</b> ${stirpe}
+
+<b>Bacchetta:</b> ${bacchetta}
+
+<b>Allineamento:</b> ${allineamento}
+
+<b>Categoria Magica e Mestiere:</b> ${mestiere}
+
+<b>Scuola di Magia e Casa frequentata:</b> ${scuola}
+
+<b>Animali da compagnie:</b> ${animali}
+</div></div></div><div data-label="Storia"><p class="titolo-scheda"><i class="fa-solid fa-pen"></i> STORIA</p><div class="cont"><div class="cont0">${storia || "STORIA QUI"}
+
+<p class="titolo-scheda"><i class="fa-solid fa-newspaper"></i> INFO PUBBLICHE</p>
+${infoPubbliche || "INFO PUBBLICHE QUI"}
+
+<p class="titolo-scheda"><i class="fa-solid fa-eye-low-vision"></i> INFO PRIVATE</p>
+${infoPrivate || "INFO PRIVATE QUI"}
+
+</div></div></div><div data-label="Aspetto"><p class="titolo-scheda"><i class="fa-solid fa-person"></i> ASPETTO</p><div class="cont"><div class="cont0">${aspettoFisico || "ASPETTO FISICO QUI"}
+
+</div></div></div><div data-label="Carattere"><p class="titolo-scheda"><i class="fa-solid fa-masks-theater"></i> CARATTERE</p><div class="cont"><div class="cont0">${carattere || "CARATTERE QUI"}
+
+</div></div></div><div data-label="Relazioni"><p class="titolo-scheda"><i class="fa-solid fa-people-group"></i> RELAZIONI</p><div class="cont"><div class="cont0">${relazioni || "RELAZIONI QUI"}
+</div></div></div></div></div>`;
+
+
+            // ==========================================
+            // GENERAZIONE SECONDA PARTE (MASTER)
+            // ==========================================
+            // Puliamo o rigeneriamo le tabelle mantenendo intatti i valori estratti
+            const secondaParteNuova = `<div class="${classeScheda}"><div data-slide="effect:slide{left}; duration:200ms; buttons:buttons;" class="scheda_slide_base"><div data-label="Punti"><p class="titolo-scheda"><i class="fa-solid fa-chart-column"></i> PUNTI</p><div class="cont"><div class="magici"><table>${tabellaMagici || `<th colspan="6">Parametri Magici</th><tr class="nomi"><td>Acume</td><td>Empatia</td><td>Percezione</td><td>Potenza</td><td>Tecnica</td><td>Volontà</td></tr><tr class="valori"><td>N° Punti Acume</td><td>N° Punti Empatia</td><td>N° Punti Percezione</td><td>N° Punti Potenza</td><td>N° Punti Punti Tecnica</td><td>N° Punti Punti Volontà</td></tr>`}</table></div>
+<div class="fisici"><table>${tabellaFisici || `<th colspan="4">Parametri Fisici</th><tr class="nomi"><td>Destrezza</td><td>Fatica</td><td>Resistenza</td><td>Salute</td></tr><tr class="valori"><td>N° Punti Destrezza</td><td>N° Punti Fatica</td><td>N° Punti Resistenza</td><td>N° Punti Salute</td></tr>`}</table></div>
+<div class="sociali"><table><th colspan="4">Parametri Sociali</th>
+
+<tr class="nomi">
+<td>Dialettica</td>
+<td>Popolarità</td>
+<td>Virtuoso</td>
+<td>Sinistro</td>
+</tr>
+
+<tr class="valori">
+<td>${dialettica}</td>
+<td>${popolarita}</td>
+<td>//</td>
+<td>//</td>
+</tr>
+
+<tr class="nomi">
+<td colspan="4" style="border-top: 2px dashed;border-bottom: 2px dashed; padding:7px"><b>Prestigio - ${mestiere ? mestiere.replace(/<\/?[^>]+(>|$)/g, "").trim() : "Mestiere qui"}</b></td>
+</tr>
+
+<tr class="valori">
+<td colspan="4"><div class="contpunti"><div class="max" style="width:${prestigioPercentuale}%">${prestigioMax}</div><div class="prestigio" style="width:${prestigioPercentuale}%">${prestigioVal}</div></div></td>
+</tr>
+
+</table></div></div></div><div data-label="Sapienze"><p class="titolo-scheda"><i class="fa-solid fa-wand-sparkles"></i> SAPIENZE</p><div class="cont">
+
+${sapienzeContenuto}
+
+</div></div>
+<div data-label="Bagaglio"><p class="titolo-scheda"><i class="fa-solid fa-suitcase"></i> BAGAGLIO</p><div class="cont"><i class="fa-solid fa-coins"></i> <b>Galeoni:</b> ${galeoniVecchi || "\n• 100 da spendere in Eventi, Role a pagamento o Acquisti di Oggetti"}
+
+<i class="fa-solid fa-receipt"></i> <b>Debito (Galeoni):</b> ${debitoGaleoni}
+
+<b>Punti Post:</b> ${puntiPost}
+<b>Debito (Punti Post):</b> ${debitoPuntiPost}
+
+
+<hr>
+<details><summary><i class="fa-solid fa-broom-ball"></i> <b>Oggetti:</b></summary>${detOggetti}</details>
+<details><summary><i class="fa-solid fa-award"></i> <b>Premi Fanta Felix Felicis:</b></summary>${detPremi}</details>
+<details><summary><i class="fa-solid fa-flask-vial"></i> <b>Pozioni:</b></summary>${detPozioni}</details>
+<details><summary><i class="fa-solid fa-disease"></i> <b>Immunità:</b></summary>${detImmunita}</details>
+
+</div></div><div data-label="Conoscenze"><div class="cont"><p class="titolo-scheda"><i class="fa-solid fa-book-bookmark"></i> CONOSCENZE</p><b><i class="fa-solid fa-plus"></i> Extra:</b>${cExtra || cScolastiche}
+
+<hr>
+<b><i class="fa-solid fa-trophy"></i> Avanzate:</b>${cAvanzate}
+
+<hr>
+<b><i class="fa-solid fa-bookmark"></i> Altro:</b>${cAltro}
+</div>
+</div></div></div>`;
+
+            // Invio i codici generati alle rispettive aree di testo
+            document.getElementById('nuovaPrima').value = primaParteNuova;
+            document.getElementById('nuovaSeconda').value = secondaParteNuova;
+        }
+    </script>
+</body>
+</html>
